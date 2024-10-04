@@ -1,0 +1,9 @@
+# Node.js dependencies
+node_modules/
+client/node_modules/
+
+# Exclude uploads folder
+uploads/
+
+# Keep the client folder
+!client/
