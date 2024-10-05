@@ -1,9 +1,9 @@
 # Node.js dependencies
-node_modules/
+backend/node_modules/
 client/node_modules/
 
 # Exclude uploads folder
-uploads/
+backend/uploads/
 
 # Keep the client folder
 !client/

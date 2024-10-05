@@ -3,6 +3,7 @@ import React, { useState } from "react";
 const FileUpload = () => {
   const [file, setFile] = useState(null);
   const [format, setFormat] = useState("");
+  const [convertedFileUrl, setConvertedFileUrl] = useState(null); // Step 1: State for converted file URL
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -24,6 +25,7 @@ const FileUpload = () => {
       }
 
       const data = await response.json();
+      setConvertedFileUrl(data.convertedFileUrl); // Step 2: Set the converted file URL
       console.log("Success:", data);
     } catch (error) {
       console.error("Error:", error);
@@ -56,13 +58,20 @@ const FileUpload = () => {
             <option value="pdf">PDF</option>
             <option value="docx">DOCX</option>
             <option value="txt">TXT</option>
-            <option value="jpg">JPG</option>
-            <option value="png">PNG</option>
-            {/* Add more format options as needed */}
           </select>
         </div>
         <button type="submit">Convert</button>
       </form>
+      
+      {/* Step 3: Render download link if convertedFileUrl is set */}
+      {convertedFileUrl && (
+        <div>
+          <h2>Download Converted File:</h2>
+          <a href={convertedFileUrl} target="_blank" rel="noopener noreferrer">
+            Download File
+          </a>
+        </div>
+      )}
     </div>
   );
 };
