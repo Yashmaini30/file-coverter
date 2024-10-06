@@ -7,3 +7,5 @@ backend/uploads/
 
 # Keep the client folder
 !client/
+
+backend/.env
