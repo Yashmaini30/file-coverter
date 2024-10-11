@@ -3,15 +3,20 @@ import express from "express";
 import multer from "multer";
 import cors from "cors";
 import fs from "fs";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
+import { createWriteStream } from "fs";
+import { pipeline } from "stream";
+import { promisify } from "util";
 
 dotenv.config(); 
 
 const app = express();
 const upload = multer({ dest: "uploads/" });
 
-// AWS SDK  credentials
+const streamPipeline = promisify(pipeline);
+
+// AWS SDK credentials
 const s3Client = new S3Client({
   region: process.env.AWS_REGION || "us-east-1",
   credentials: {
@@ -31,10 +36,10 @@ const lambdaClient = new LambdaClient({
 app.use(cors());
 app.use(express.json());
 
-
 const BUCKET_NAME = process.env.S3_BUCKET_NAME;
 const LAMBDA_FUNCTION_NAME = process.env.LAMBDA_FUNCTION_NAME;
 
+// Upload file to S3
 const uploadFileToS3 = async (file) => {
   const uploadParams = {
     Bucket: BUCKET_NAME,
@@ -97,6 +102,7 @@ app.post("/api/convert", upload.single("file"), async (req, res) => {
     // 3. Send back the converted file URL
     return res.status(200).json({
       message: lambdaResult.message,
+      convertedFileKey: lambdaResult.convertedFileKey,
       convertedFileUrl: `https://${BUCKET_NAME}.s3.amazonaws.com/${lambdaResult.convertedFileKey}`,
     });
   } catch (err) {
@@ -109,6 +115,28 @@ app.post("/api/convert", upload.single("file"), async (req, res) => {
         console.error("Error deleting file:", err);
       }
     });
+  }
+});
+
+// Route for downloading a file from S3
+app.get("/api/download/:fileName", async (req, res) => {
+  const fileName = req.params.fileName;
+
+  const downloadParams = {
+    Bucket: BUCKET_NAME,
+    Key: `converted/${fileName}`,
+  };
+
+  try {
+    const { Body } = await s3Client.send(new GetObjectCommand(downloadParams));
+
+    res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+    res.setHeader("Content-Type", "application/octet-stream");
+
+    await streamPipeline(Body, res);
+  } catch (err) {
+    console.error("Error downloading file from S3:", err);
+    res.status(500).json({ message: "Error downloading file" });
   }
 });
 
